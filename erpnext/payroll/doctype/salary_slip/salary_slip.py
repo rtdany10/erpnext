@@ -154,8 +154,15 @@ class SalarySlip(TransactionBase):
 		if date_diff(self.end_date, joining_date) < 0:
 			frappe.throw(_("Cannot create Salary Slip for Employee joining after Payroll Period"))
 
-		if relieving_date and date_diff(relieving_date, self.start_date) < 0:
-			frappe.throw(_("Cannot create Salary Slip for Employee who has left before Payroll Period"))
+		if date_diff(self.start_date, joining_date) < 0:
+			self.start_date = joining_date
+
+		if relieving_date:
+			if date_diff(relieving_date, self.start_date) < 0:
+				frappe.throw(_("Cannot create Salary Slip for Employee who has left before Payroll Period"))
+
+			if date_diff(relieving_date, self.end_date) < 0:
+				self.end_date = relieving_date
 
 	def is_rounding_total_disabled(self):
 		return cint(frappe.db.get_single_value("Payroll Settings", "disable_rounded_total"))
