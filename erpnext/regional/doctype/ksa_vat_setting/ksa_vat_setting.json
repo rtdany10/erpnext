@@ -24,19 +24,19 @@
    "fieldname": "ksa_vat_sales_accounts",
    "fieldtype": "Table",
    "label": "KSA VAT Sales Accounts",
-   "options": "KSA VAT Sales Account",
+   "options": "KSA VAT Details",
    "reqd": 1
   },
   {
    "fieldname": "ksa_vat_purchase_accounts",
    "fieldtype": "Table",
    "label": "KSA VAT Purchase Accounts",
-   "options": "KSA VAT Purchase Account",
+   "options": "KSA VAT Details",
    "reqd": 1
   }
  ],
  "links": [],
- "modified": "2021-08-26 04:29:06.499378",
+ "modified": "2022-01-04 13:00:38.652811",
  "modified_by": "Administrator",
  "module": "Regional",
  "name": "KSA VAT Setting",
