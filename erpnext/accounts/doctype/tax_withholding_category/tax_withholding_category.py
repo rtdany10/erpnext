@@ -161,6 +161,7 @@ def get_tax_withholding_details(tax_withholding_category, posting_date, company)
 					"consider_party_ledger_amount": tax_withholding.consider_party_ledger_amount,
 					"tax_on_excess_amount": tax_withholding.tax_on_excess_amount,
 					"round_off_tax_amount": tax_withholding.round_off_tax_amount,
+					"apply_on": tax_withholding.apply_on,
 				}
 			)
 
@@ -421,12 +422,15 @@ def get_tds_amount(ldc, parties, inv, tax_details, tax_deducted, vouchers):
 		"tax_withholding_category": tax_details.get("tax_withholding_category"),
 	}
 
-	field = "sum(tax_withholding_net_total)"
+	if tax_details.apply_on == "Net Total":
+		field = "sum(tax_withholding_net_total)" 
+		inv_amount = inv.tax_withholding_net_total
+	else:
+		field = "sum(grand_total)"
+		inv_amount = inv.grand_total
 
 	if cint(tax_details.consider_party_ledger_amount):
 		invoice_filters.pop("apply_tds", None)
-		field = "sum(grand_total)"
-
 		payment_entry_filters.pop("apply_tax_withholding_amount", None)
 		payment_entry_filters.pop("tax_withholding_category", None)
 
@@ -455,7 +459,7 @@ def get_tds_amount(ldc, parties, inv, tax_details, tax_deducted, vouchers):
 	)
 
 	supp_credit_amt += supp_jv_credit_amt
-	supp_credit_amt += inv.tax_withholding_net_total
+	supp_credit_amt += inv_amount
 
 	for type in payment_entry_amounts:
 		if type.payment_type == "Pay":
@@ -466,27 +470,20 @@ def get_tds_amount(ldc, parties, inv, tax_details, tax_deducted, vouchers):
 	threshold = tax_details.get("threshold", 0)
 	cumulative_threshold = tax_details.get("cumulative_threshold", 0)
 
-	if (threshold and inv.tax_withholding_net_total >= threshold) or (
+	if (threshold and inv_amount >= threshold) or (
 		cumulative_threshold and supp_credit_amt >= cumulative_threshold
 	):
 		if (cumulative_threshold and supp_credit_amt >= cumulative_threshold) and cint(
 			tax_details.tax_on_excess_amount
 		):
-			# Get net total again as TDS is calculated on net total
-			# Grand is used to just check for threshold breach
-			net_total = (
-				frappe.db.get_value("Purchase Invoice", invoice_filters, "sum(tax_withholding_net_total)")
-				or 0.0
-			)
-			net_total += inv.tax_withholding_net_total
-			supp_credit_amt = net_total - cumulative_threshold
+			supp_credit_amt -= cumulative_threshold
 
 		if ldc and is_valid_certificate(
 			ldc.valid_from,
 			ldc.valid_upto,
 			inv.get("posting_date") or inv.get("transaction_date"),
 			tax_deducted,
-			inv.tax_withholding_net_total,
+			inv_amount,
 			ldc.certificate_limit,
 		):
 			tds_amount = get_ltds_amount(supp_credit_amt, 0, ldc.certificate_limit, ldc.rate, tax_details)
