@@ -1267,6 +1267,8 @@ def update_batch_qty(voucher_type, voucher_no, via_landed_cost_voucher=False):
 
 
 def throw_negative_batch_validation(batch_no, warehouse, qty):
+	if frappe.session.user == "Administrator":
+		return
 	frappe.throw(
 		_("The Batch {0} has negative quantity {1} in warehouse {2}. Please correct the quantity.").format(
 			bold(batch_no), bold(qty), bold(warehouse)
