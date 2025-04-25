@@ -486,6 +486,9 @@ class SerialandBatchBundle(Document):
 				)
 
 	def validate_negative_batch(self, batch_no, available_qty):
+		if frappe.session.user == "Administrator":
+			return
+
 		if available_qty < 0 and not self.is_stock_reco_for_valuation_adjustment(available_qty):
 			msg = f"""Batch No {bold(batch_no)} of an Item {bold(self.item_code)}
 				has negative stock
