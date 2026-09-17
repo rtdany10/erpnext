@@ -749,6 +749,7 @@ class GrossProfitGenerator:
 			.where(
 				(si.docstatus == 1)
 				& (si.is_return == 1)
+				& (si.company == self.filters.company)
 				& si.posting_date.between(self.filters.from_date, self.filters.to_date)
 			)
 			.run(as_dict=1)
