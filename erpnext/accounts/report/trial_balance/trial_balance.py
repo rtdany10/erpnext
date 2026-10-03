@@ -345,7 +345,7 @@ def calculate_values(accounts, gl_entries_by_account, opening_balances, show_net
 			prepare_opening_closing(d)
 
 
-def calculate_total_row(data, company_currency, show_group_accounts=True):
+def calculate_total_row(data, company_currency):
 	total_row = {
 		"account": "'" + _("Total") + "'",
 		"account_name": "'" + _("Total") + "'",
@@ -362,16 +362,12 @@ def calculate_total_row(data, company_currency, show_group_accounts=True):
 		"currency": company_currency,
 	}
 
-	def sum_value_fields(row):
-		for field in value_fields:
-			total_row[field] += row[field]
-
+	# always total the leaf accounts, so that netting of group rows
+	# (show_net_values) doesn't change the total
 	for d in data:
-		if not show_group_accounts:
-			sum_value_fields(d)
-
-		elif show_group_accounts and not d.get("parent_account"):
-			sum_value_fields(d)
+		if not d.get("is_group_account"):
+			for field in value_fields:
+				total_row[field] += d[field]
 
 	return total_row
 
@@ -418,9 +414,7 @@ def prepare_data(accounts, filters, parent_children_map, company_currency):
 	if not filters.get("show_group_accounts"):
 		data = hide_group_accounts(data)
 
-	total_row = calculate_total_row(
-		data, company_currency, show_group_accounts=filters.get("show_group_accounts")
-	)
+	total_row = calculate_total_row(data, company_currency)
 
 	data.extend([{}, total_row])
 

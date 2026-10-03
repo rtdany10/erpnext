@@ -62,6 +62,55 @@ class TestTrialBalance(FrappeTestCase):
 		total_row = execute(filters)[1][-1]
 		self.assertEqual(total_row["debit"], total_row["credit"])
 
+	def test_total_row_same_with_and_without_group_accounts_for_net_values(self):
+		from erpnext.accounts.doctype.account.test_account import create_account
+		from erpnext.accounts.doctype.journal_entry.test_journal_entry import make_journal_entry
+
+		frappe.db.sql("delete from `tabGL Entry` where company='Trial Balance Company'")
+
+		create_account(account_name="Test Asset", company=self.company, parent_account="Current Assets - TBC")
+
+		# Test Asset (Dr) and Cash (Cr) leaves under the same root net off against
+		# each other if group rows are netted, but must not affect the total
+		make_journal_entry(
+			"Cash - TBC",
+			"Sales - TBC",
+			100,
+			cost_center="Test Cost Center - TBC",
+			company=self.company,
+			submit=True,
+		)
+		make_journal_entry(
+			"Offsetting - TBC",
+			"Cash - TBC",
+			150,
+			cost_center="Test Cost Center - TBC",
+			company=self.company,
+			submit=True,
+		)
+		make_journal_entry(
+			"Test Asset - TBC",
+			"Sales - TBC",
+			30,
+			cost_center="Test Cost Center - TBC",
+			company=self.company,
+			submit=True,
+		)
+
+		base = {"company": self.company, "fiscal_year": self.fiscal_year, "show_net_values": 1}
+		with_groups = execute(frappe._dict(**base, show_group_accounts=1))[1][-1]
+		without_groups = execute(frappe._dict(**base, show_group_accounts=0))[1][-1]
+
+		for field in (
+			"opening_debit",
+			"opening_credit",
+			"debit",
+			"credit",
+			"closing_debit",
+			"closing_credit",
+		):
+			self.assertEqual(with_groups[field], without_groups[field], field)
+
 	def tearDown(self):
 		clear_dimension_defaults("Branch")
 		disable_dimension()
